@@ -11,7 +11,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package cn.ucai.superwechat.activity;
+package cn.ucai.superwechat.fragment;
 
 import android.app.ProgressDialog;
 import android.content.Intent;
@@ -30,14 +30,21 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import com.easemob.EMCallBack;
-import cn.ucai.superwechat.applib.controller.HXSDKHelper;
-
 import com.easemob.chat.EMChatManager;
 import com.easemob.chat.EMChatOptions;
+
 import cn.ucai.superwechat.Constant;
 import cn.ucai.superwechat.DemoHXSDKHelper;
 import cn.ucai.superwechat.DemoHXSDKModel;
 import cn.ucai.superwechat.R;
+import cn.ucai.superwechat.SuperWeChatApplication;
+import cn.ucai.superwechat.activity.BlacklistActivity;
+import cn.ucai.superwechat.activity.DiagnoseActivity;
+import cn.ucai.superwechat.activity.LoginActivity;
+import cn.ucai.superwechat.activity.MainActivity;
+import cn.ucai.superwechat.activity.OfflinePushNickActivity;
+import cn.ucai.superwechat.activity.UserProfileActivity;
+import cn.ucai.superwechat.applib.controller.HXSDKHelper;
 
 /**
  * 设置界面
@@ -355,6 +362,11 @@ public class SettingsFragment extends Fragment implements OnClickListener {
 			
 			@Override
 			public void onSuccess() {
+			    SuperWeChatApplication instance = SuperWeChatApplication.getInstance();
+			    instance.getContactList().clear();
+			    instance.getContacts().clear();
+			    instance.getGroupList().clear();
+			    instance.getGroupMembers().clear();
 				getActivity().runOnUiThread(new Runnable() {
 					public void run() {
 						pd.dismiss();

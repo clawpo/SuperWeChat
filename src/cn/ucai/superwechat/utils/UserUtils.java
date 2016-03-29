@@ -5,11 +5,15 @@ import android.text.TextUtils;
 import android.widget.ImageView;
 import android.widget.TextView;
 
-import cn.ucai.superwechat.applib.controller.HXSDKHelper;
+import com.easemob.util.HanziToPinyin;
+import com.squareup.picasso.Picasso;
+
+import cn.ucai.superwechat.Constant;
 import cn.ucai.superwechat.DemoHXSDKHelper;
 import cn.ucai.superwechat.R;
+import cn.ucai.superwechat.applib.controller.HXSDKHelper;
+import cn.ucai.superwechat.bean.UserBean;
 import cn.ucai.superwechat.domain.User;
-import com.squareup.picasso.Picasso;
 
 public class UserUtils {
     /**
@@ -80,13 +84,37 @@ public class UserUtils {
     
     /**
      * 保存或更新某个用户
-     * @param user
+     * @param newUser
      */
 	public static void saveUserInfo(User newUser) {
 		if (newUser == null || newUser.getUsername() == null) {
 			return;
 		}
 		((DemoHXSDKHelper) HXSDKHelper.getInstance()).saveContact(newUser);
+	}
+
+	public static void setUserHearder(UserBean user){
+	    String userName = user.getUserName();
+	    String headerName = null;
+	    if(!TextUtils.isEmpty(user.getNick())){
+	        headerName = user.getNick();
+	    }else{
+	        headerName = userName;
+	    }
+	    if(userName.equals(Constant.NEW_FRIENDS_USERNAME)
+	            || userName.equals(Constant.GROUP_USERNAME)){
+	        user.setHeader("");
+	    }else if(Character.isDigit(headerName.charAt(0))){
+	        user.setHeader("#");
+	    }else{
+	        user.setHeader(HanziToPinyin.getInstance()
+	                .get(headerName.substring(0, 1)).get(0).target.substring(0,
+	                        1).toUpperCase());
+	        char header = user.getHeader().toLowerCase().charAt(0);
+	        if(header<'a' || header>'z'){
+	            user.setHeader("#");
+	        }
+	    }
 	}
     
 }

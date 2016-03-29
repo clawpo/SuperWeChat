@@ -13,18 +13,6 @@
  */
 package cn.ucai.superwechat.adapter;
 
-import java.io.File;
-import java.util.Date;
-import java.util.Hashtable;
-import java.util.Map;
-import java.util.Timer;
-import java.util.TimerTask;
-
-import org.json.JSONArray;
-import org.json.JSONException;
-import org.json.JSONObject;
-import org.xmlpull.v1.XmlPullParser;
-
 import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.content.Context;
@@ -51,9 +39,10 @@ import android.widget.TextView;
 import android.widget.TextView.BufferType;
 import android.widget.Toast;
 
+import com.android.volley.toolbox.ImageLoader;
+import com.android.volley.toolbox.NetworkImageView;
 import com.easemob.EMCallBack;
 import com.easemob.EMError;
-import cn.ucai.superwechat.applib.controller.HXSDKHelper;
 import com.easemob.chat.EMChatManager;
 import com.easemob.chat.EMConversation;
 import com.easemob.chat.EMMessage;
@@ -67,9 +56,32 @@ import com.easemob.chat.NormalFileMessageBody;
 import com.easemob.chat.TextMessageBody;
 import com.easemob.chat.VideoMessageBody;
 import com.easemob.chat.VoiceMessageBody;
+import com.easemob.exceptions.EaseMobException;
+import com.easemob.util.DensityUtil;
+import com.easemob.util.EMLog;
+import com.easemob.util.FileUtils;
+import com.easemob.util.LatLng;
+import com.easemob.util.TextFormater;
+
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
+import org.xmlpull.v1.XmlPullParser;
+
+import java.io.File;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.Hashtable;
+import java.util.Map;
+import java.util.Timer;
+import java.util.TimerTask;
+
 import cn.ucai.superwechat.Constant;
 import cn.ucai.superwechat.DemoHXSDKHelper;
+import cn.ucai.superwechat.I;
 import cn.ucai.superwechat.R;
+import cn.ucai.superwechat.SuperWeChatApplication;
 import cn.ucai.superwechat.activity.AlertDialog;
 import cn.ucai.superwechat.activity.BaiduMapActivity;
 import cn.ucai.superwechat.activity.ChatActivity;
@@ -78,6 +90,9 @@ import cn.ucai.superwechat.activity.ShowBigImage;
 import cn.ucai.superwechat.activity.ShowNormalFileActivity;
 import cn.ucai.superwechat.activity.ShowVideoActivity;
 import cn.ucai.superwechat.activity.UserProfileActivity;
+import cn.ucai.superwechat.applib.controller.HXSDKHelper;
+import cn.ucai.superwechat.bean.UserBean;
+import cn.ucai.superwechat.data.RequestManager;
 import cn.ucai.superwechat.task.LoadImageTask;
 import cn.ucai.superwechat.task.LoadVideoImageTask;
 import cn.ucai.superwechat.utils.DateUtils;
@@ -85,12 +100,7 @@ import cn.ucai.superwechat.utils.ImageCache;
 import cn.ucai.superwechat.utils.ImageUtils;
 import cn.ucai.superwechat.utils.SmileUtils;
 import cn.ucai.superwechat.utils.UserUtils;
-import com.easemob.exceptions.EaseMobException;
-import com.easemob.util.DensityUtil;
-import com.easemob.util.EMLog;
-import com.easemob.util.FileUtils;
-import com.easemob.util.LatLng;
-import com.easemob.util.TextFormater;
+import cn.ucai.superwechat.utils.Utils;
 
 public class MessageAdapter extends BaseAdapter{
 
@@ -135,12 +145,40 @@ public class MessageAdapter extends BaseAdapter{
 
 	private Map<String, Timer> timers = new Hashtable<String, Timer>();
 
+	/** 登陆的用户*/
+	UserBean mMyUser;
+	/** 单聊的聊天对象*/
+	UserBean mToUser;
+
+	/** 群聊的组成员集合*/
+	ArrayList<UserBean> mGroupMembers;
+
+	/** 加载头像*/
+	ImageLoader mImageLoader;
+
 	public MessageAdapter(Context context, String username, int chatType) {
 		this.username = username;
 		this.context = context;
 		inflater = LayoutInflater.from(context);
 		activity = (Activity) context;
 		this.conversation = EMChatManager.getInstance().getConversation(username);
+		
+		//获取登录的用户
+		mMyUser = SuperWeChatApplication.getInstance().getUserBean();
+		//实例化下载头像的任务对象
+		mImageLoader = RequestManager.getImageLoader();
+		if(chatType == ChatActivity.CHATTYPE_SINGLE){
+		    ArrayList<UserBean> contactList = SuperWeChatApplication.getInstance().getContactList();
+		    UserBean user = new UserBean();
+		    user.setUserName(username);
+		    int id = contactList.indexOf(user);
+		    if(id>0&&contactList!=null&&contactList.size()>0&&id<contactList.size()){
+		        mToUser = contactList.get(id);
+		    }
+		}else{
+		    HashMap<String, ArrayList<UserBean>> groupMembers = SuperWeChatApplication.getInstance().getGroupMembers();
+		    mGroupMembers = groupMembers.get(username);
+		}
 	}
 	
 	Handler handler = new Handler() {
@@ -324,7 +362,7 @@ public class MessageAdapter extends BaseAdapter{
 			if (message.getType() == EMMessage.Type.IMAGE) {
 				try {
 					holder.iv = ((ImageView) convertView.findViewById(R.id.iv_sendPicture));
-					holder.iv_avatar = (ImageView) convertView.findViewById(R.id.iv_userhead);
+					holder.iv_avatar = (NetworkImageView) convertView.findViewById(R.id.iv_userhead);
 					holder.tv = (TextView) convertView.findViewById(R.id.percentage);
 					holder.pb = (ProgressBar) convertView.findViewById(R.id.progressBar);
 					holder.staus_iv = (ImageView) convertView.findViewById(R.id.msg_status);
@@ -337,7 +375,7 @@ public class MessageAdapter extends BaseAdapter{
 				try {
 					holder.pb = (ProgressBar) convertView.findViewById(R.id.pb_sending);
 					holder.staus_iv = (ImageView) convertView.findViewById(R.id.msg_status);
-					holder.iv_avatar = (ImageView) convertView.findViewById(R.id.iv_userhead);
+					holder.iv_avatar = (NetworkImageView) convertView.findViewById(R.id.iv_userhead);
 					// 这里是文字内容
 					holder.tv = (TextView) convertView.findViewById(R.id.tv_chatcontent);
 					holder.tv_usernick = (TextView) convertView.findViewById(R.id.tv_userid);
@@ -357,7 +395,7 @@ public class MessageAdapter extends BaseAdapter{
 			} else if (message.getType() == EMMessage.Type.VOICE) {
 				try {
 					holder.iv = ((ImageView) convertView.findViewById(R.id.iv_voice));
-					holder.iv_avatar = (ImageView) convertView.findViewById(R.id.iv_userhead);
+					holder.iv_avatar = (NetworkImageView) convertView.findViewById(R.id.iv_userhead);
 					holder.tv = (TextView) convertView.findViewById(R.id.tv_length);
 					holder.pb = (ProgressBar) convertView.findViewById(R.id.pb_sending);
 					holder.staus_iv = (ImageView) convertView.findViewById(R.id.msg_status);
@@ -367,7 +405,7 @@ public class MessageAdapter extends BaseAdapter{
 				}
 			} else if (message.getType() == EMMessage.Type.LOCATION) {
 				try {
-					holder.iv_avatar = (ImageView) convertView.findViewById(R.id.iv_userhead);
+					holder.iv_avatar = (NetworkImageView) convertView.findViewById(R.id.iv_userhead);
 					holder.tv = (TextView) convertView.findViewById(R.id.tv_location);
 					holder.pb = (ProgressBar) convertView.findViewById(R.id.pb_sending);
 					holder.staus_iv = (ImageView) convertView.findViewById(R.id.msg_status);
@@ -377,7 +415,7 @@ public class MessageAdapter extends BaseAdapter{
 			} else if (message.getType() == EMMessage.Type.VIDEO) {
 				try {
 					holder.iv = ((ImageView) convertView.findViewById(R.id.chatting_content_iv));
-					holder.iv_avatar = (ImageView) convertView.findViewById(R.id.iv_userhead);
+					holder.iv_avatar = (NetworkImageView) convertView.findViewById(R.id.iv_userhead);
 					holder.tv = (TextView) convertView.findViewById(R.id.percentage);
 					holder.pb = (ProgressBar) convertView.findViewById(R.id.progressBar);
 					holder.staus_iv = (ImageView) convertView.findViewById(R.id.msg_status);
@@ -391,7 +429,7 @@ public class MessageAdapter extends BaseAdapter{
 				}
 			} else if (message.getType() == EMMessage.Type.FILE) {
 				try {
-					holder.iv_avatar = (ImageView) convertView.findViewById(R.id.iv_userhead);
+					holder.iv_avatar = (NetworkImageView) convertView.findViewById(R.id.iv_userhead);
 					holder.tv_file_name = (TextView) convertView.findViewById(R.id.tv_file_name);
 					holder.tv_file_size = (TextView) convertView.findViewById(R.id.tv_file_size);
 					holder.pb = (ProgressBar) convertView.findViewById(R.id.pb_sending);
@@ -414,14 +452,21 @@ public class MessageAdapter extends BaseAdapter{
 			holder = (ViewHolder) convertView.getTag();
 		}
 
-		// 群聊时，显示接收的消息的发送人的名称
-		if ((chatType == ChatType.GroupChat || chatType == ChatType.ChatRoom) && message.direct == EMMessage.Direct.RECEIVE){
-		    //demo里使用username代码nick
-			UserUtils.setUserNick(message.getFrom(), holder.tv_usernick);
-		}
-		if(message.direct == EMMessage.Direct.SEND){
-			UserUtils.setCurrentUserNick(holder.tv_usernick);
-		}
+//		// 群聊时，显示接收的消息的发送人的名称
+//		if ((chatType == ChatType.GroupChat || chatType == ChatType.ChatRoom) && message.direct == EMMessage.Direct.RECEIVE){
+//		    //demo里使用username代码nick
+//			UserUtils.setUserNick(message.getFrom(), holder.tv_usernick);
+//		}
+//		if(message.direct == EMMessage.Direct.SEND){
+//			UserUtils.setCurrentUserNick(holder.tv_usernick);
+//		}
+        // 显示接收消息中，消息发送者的昵称
+        if(message.direct == EMMessage.Direct.RECEIVE){
+            UserBean user = Utils.getMessageFromUser(chatType, username, message.getFrom());
+            if(user!=null){
+                holder.tv_usernick.setText(user.getNick());
+            }
+        }
 		// 如果是发送的消息并且不是群聊消息，显示已读textview
 		if (!(chatType == ChatType.GroupChat || chatType == ChatType.ChatRoom) && message.direct == EMMessage.Direct.SEND) {
 			holder.tv_ack = (TextView) convertView.findViewById(R.id.tv_ack);
@@ -461,8 +506,8 @@ public class MessageAdapter extends BaseAdapter{
 			}
 		}
 		
-		//设置用户头像
-		setUserAvatar(message, holder.iv_avatar);
+//		//设置用户头像
+//		setUserAvatar(message, holder.iv_avatar);
 
 		switch (message.getType()) {
 		// 根据消息type显示item
@@ -496,7 +541,10 @@ public class MessageAdapter extends BaseAdapter{
 			// not supported
 		}
 
+		String path = null;
+
 		if (message.direct == EMMessage.Direct.SEND) {
+		    path = I.DOWNLOAD_AVATAR_URL + mMyUser.getAvatar();
 			View statusView = convertView.findViewById(R.id.msg_status);
 			// 重发按钮点击事件
 			statusView.setOnClickListener(new OnClickListener() {
@@ -526,6 +574,11 @@ public class MessageAdapter extends BaseAdapter{
 			});
 
 		} else {
+		    String from = message.getFrom();
+		    UserBean fromUser = Utils.getMessageFromUser(message.getChatType(), username, from);
+		    if(fromUser!=null && fromUser.getAvatar()!=null){
+		        path = I.DOWNLOAD_AVATAR_URL + fromUser.getAvatar();
+		    }
 			final String st = context.getResources().getString(R.string.Into_the_blacklist);
 			if(!((ChatActivity)activity).isRobot && chatType != ChatType.ChatRoom){
 				// 长按头像，移入黑名单
@@ -543,6 +596,24 @@ public class MessageAdapter extends BaseAdapter{
 				});
 			}
 		}
+		if(path != null){
+            Log.e(TAG,"getView,path="+path);
+		    holder.iv_avatar.setTag(path);
+            holder.iv_avatar.setDefaultImageResId(R.drawable.default_avatar);
+            holder.iv_avatar.setErrorImageResId(R.drawable.default_avatar);
+            holder.iv_avatar.setImageUrl(path,mImageLoader);
+
+		}
+        holder.iv_avatar.setOnClickListener(new View.OnClickListener() {
+
+            @Override
+            public void onClick(View v) {
+                Intent intent = new Intent();
+                intent.setClass(context, UserProfileActivity.class);
+                intent.putExtra("username", message.getFrom());
+                context.startActivity(intent);
+            }
+        });
 
 		TextView timestamp = (TextView) convertView.findViewById(R.id.timestamp);
 
@@ -1532,7 +1603,7 @@ public class MessageAdapter extends BaseAdapter{
 		TextView tv;
 		ProgressBar pb;
 		ImageView staus_iv;
-		ImageView iv_avatar;
+		NetworkImageView iv_avatar;
 		TextView tv_usernick;
 		ImageView playBtn;
 		TextView timeLength;

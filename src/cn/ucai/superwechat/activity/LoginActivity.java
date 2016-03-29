@@ -33,6 +33,7 @@ import com.easemob.EMCallBack;
 import com.easemob.chat.EMChatManager;
 import com.easemob.chat.EMGroupManager;
 
+import java.io.File;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -47,6 +48,9 @@ import cn.ucai.superwechat.bean.UserBean;
 import cn.ucai.superwechat.db.EMUserDao;
 import cn.ucai.superwechat.db.UserDao;
 import cn.ucai.superwechat.domain.User;
+import cn.ucai.superwechat.listener.DownloadContactsListener;
+import cn.ucai.superwechat.listener.OnSetAvatarListener;
+import cn.ucai.superwechat.task.DownloadContactsTask;
 import cn.ucai.superwechat.utils.CommonUtils;
 import cn.ucai.superwechat.utils.MD5;
 import cn.ucai.superwechat.utils.NetUtil;
@@ -207,7 +211,21 @@ public class LoginActivity extends BaseActivity {
                         // 登陆成功，保存用户名密码
                         SuperWeChatApplication.getInstance().setUserName(currentUsername);
                         SuperWeChatApplication.getInstance().setPassword(currentPassword);
-
+                        //下载头像
+                        String avatar = SuperWeChatApplication.getInstance().getUserBean().getAvatar();
+                        File file = OnSetAvatarListener.getAvatarFile(mContext, avatar);
+                        NetUtil.downloadAvatar(file, "user_avatar", avatar);
+                        //下载联系人
+                        ArrayList<UserBean> contactList = SuperWeChatApplication.getInstance().getContactList();
+                        Log.e(TAG,"LoginActivity.contactList.size="+contactList.size());
+                        if(contactList.size()==0){
+                            new DownloadContactsTask(mContext, currentUsername, 0, 20).execute();
+                        }
+                        try {
+                            new DownloadContactsListener(currentUsername, 0, 20);
+                        } catch (Exception e) {
+                            e.printStackTrace();
+                        }
                         try {
                             // ** 第一次登录或者之前logout后再登录，加载所有本地群和回话
                             // ** manually load all local groups and

@@ -5,14 +5,22 @@ import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
 import android.content.pm.PackageManager.NameNotFoundException;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.animation.AlphaAnimation;
 import android.widget.RelativeLayout;
 import android.widget.TextView;
 
 import com.easemob.chat.EMChatManager;
 import com.easemob.chat.EMGroupManager;
+
+import java.util.ArrayList;
+
 import cn.ucai.superwechat.DemoHXSDKHelper;
 import cn.ucai.superwechat.R;
+import cn.ucai.superwechat.SuperWeChatApplication;
+import cn.ucai.superwechat.bean.UserBean;
+import cn.ucai.superwechat.db.UserDao;
+import cn.ucai.superwechat.task.DownloadContactsTask;
 
 /**
  * 开屏页
@@ -60,6 +68,17 @@ public class SplashActivity extends BaseActivity {
 							e.printStackTrace();
 						}
 					}
+					//将数据库中的当前登录用户保存在内存中
+					String userName = SuperWeChatApplication.getInstance().getUserName();
+					UserDao dao = new UserDao(SplashActivity.this);
+					UserBean user = dao.findUserByUserName(userName);
+					SuperWeChatApplication.getInstance().setUserBean(user);
+                    //下载联系人数据
+                    ArrayList<UserBean> contactList  = SuperWeChatApplication.getInstance().getContactList();
+                    Log.e("main","SplashActivity.contactList.size="+contactList.size());
+                    if(contactList.size() == 0){
+                        new DownloadContactsTask(SplashActivity.this, userName, 0, 20).execute();
+                    }
 					//进入主页面
 					startActivity(new Intent(SplashActivity.this, MainActivity.class));
 					finish();

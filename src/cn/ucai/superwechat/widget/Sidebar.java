@@ -25,9 +25,10 @@ import android.view.View;
 import android.widget.ListView;
 import android.widget.TextView;
 
+import com.easemob.util.DensityUtil;
+
 import cn.ucai.superwechat.R;
 import cn.ucai.superwechat.adapter.ContactAdapter;
-import com.easemob.util.DensityUtil;
 
 public class Sidebar extends View{
 	private Paint paint;
@@ -84,14 +85,14 @@ public class Sidebar extends View{
 		        //check the mListView to avoid NPE. but the mListView shouldn't be null
 		        //need to check the call stack later
 		        return;
-		    }
+		 }
 		String headerString = sections[sectionForPoint(event.getY())];
 		header.setText(headerString);
 		ContactAdapter adapter = (ContactAdapter) mListView.getAdapter();
 		String[] adapterSections = (String[]) adapter.getSections();
 		try {
 			for (int i = adapterSections.length - 1; i > -1; i--) {
-				if(adapterSections[i].equals(headerString)){
+				if(adapterSections[i]!=null && adapterSections[i].equals(headerString)){
 					mListView.setSelection(adapter.getPositionForSection(i));
 					break;
 				}

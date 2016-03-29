@@ -15,6 +15,8 @@ package cn.ucai.superwechat;
 
 import android.app.Application;
 import android.content.Context;
+import android.content.SharedPreferences;
+import android.util.Log;
 
 import com.easemob.EMCallBack;
 
@@ -68,6 +70,18 @@ public class SuperWeChatApplication extends Application {
          */
         hxSDKHelper.onInit(applicationContext);
         RequestManager.init(this);
+        initServerUrl();
+	}
+
+	public void initServerUrl() {
+		final SharedPreferences sp=getSharedPreferences("server_url", MODE_PRIVATE);
+		String serverUrl=sp.getString("url", "");
+		if(serverUrl==null || serverUrl.isEmpty()){
+			SuperWeChatApplication.SERVER_ROOT="http://10.0.2.2:8080/SuperQQ4Server/Server";
+		}else {
+			SuperWeChatApplication.SERVER_ROOT=serverUrl+":8080/SuperQQ4Server/Server";
+		}
+		Log.e(TAG,"***************************initServerUrl.serverurl="+SERVER_ROOT);
 	}
 
 	public static SuperWeChatApplication getInstance() {

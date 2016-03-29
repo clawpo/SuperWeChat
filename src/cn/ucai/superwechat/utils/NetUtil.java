@@ -1,15 +1,10 @@
 package cn.ucai.superwechat.utils;
 
-import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.List;
+import android.app.Activity;
+import android.graphics.Bitmap;
+import android.graphics.Bitmap.CompressFormat;
+import android.graphics.BitmapFactory;
+import android.util.Log;
 
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpResponse;
@@ -21,15 +16,16 @@ import org.apache.http.impl.client.DefaultHttpClient;
 import org.apache.http.message.BasicNameValuePair;
 import org.codehaus.jackson.map.ObjectMapper;
 
-import android.app.Activity;
-import android.app.Application;
-import android.content.SharedPreferences;
-import android.graphics.Bitmap;
-import android.graphics.LightingColorFilter;
-import android.graphics.Bitmap.CompressFormat;
-import android.graphics.BitmapFactory;
-import android.util.Log;
-import android.widget.Toast;
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.List;
 
 import cn.ucai.superwechat.I;
 import cn.ucai.superwechat.R;
@@ -665,7 +661,6 @@ public final class NetUtil {
 	
 	/**
 	 * 下载联系人->HashMap<Integer,ContactBean>
-	 * @param url
 	 */
 	public static boolean downloadContacts(SuperWeChatApplication instance,String userName,int pageId,int pageSize){
 		ArrayList<BasicNameValuePair> params = new ArrayList<BasicNameValuePair>();
@@ -678,6 +673,7 @@ public final class NetUtil {
 			ObjectMapper om = new ObjectMapper();
 //			Log.e("main","in="+in.toString());
 			ContactBean[] contacts = om.readValue(in, ContactBean[].class);
+            Log.e(TAG,"downloadContacts,contacts.length="+contacts.length);
 			HashMap<Integer, ContactBean> map = new HashMap<Integer, ContactBean>();
 			for (ContactBean contact : contacts) {
 				map.put(contact.getCuid(), contact);
