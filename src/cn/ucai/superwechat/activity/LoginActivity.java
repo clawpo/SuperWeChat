@@ -13,10 +13,12 @@
  */
 package cn.ucai.superwechat.activity;
 
+import android.app.AlertDialog;
 import android.app.ProgressDialog;
 import android.content.DialogInterface;
 import android.content.DialogInterface.OnCancelListener;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.text.Editable;
 import android.text.TextUtils;
@@ -94,6 +96,45 @@ public class LoginActivity extends BaseActivity {
         setUserNameTextChangeListener();
         setLoginClickListener();
         setRegisterClickListener();
+		setServerUrlClickListener();
+    }
+
+	/**
+	 * 设置服务端地址的按钮事件监听
+	 */
+	private void setServerUrlClickListener() {
+		findViewById(R.id.btnUrl).setOnClickListener(new OnClickListener() {
+			String serverUrl;
+			@Override
+			public void onClick(View v) {
+				final SharedPreferences sp=getSharedPreferences("server_url", MODE_PRIVATE);
+				serverUrl=sp.getString("url", "");
+				View layout=View.inflate(LoginActivity.this, R.layout.diaolog_serverurl,null);
+				final EditText etServerUrl=(EditText) layout.findViewById(R.id.etServerUrl);
+				if(!serverUrl.isEmpty()){
+					etServerUrl.setText(serverUrl);
+				}
+
+				AlertDialog.Builder builder=new AlertDialog.Builder(LoginActivity.this);
+				builder.setTitle("设置服务端的ip地址");
+				builder.setView(layout);
+				builder.setPositiveButton("设置", new DialogInterface.OnClickListener() {
+					@Override
+					public void onClick(DialogInterface dialog, int which) {
+						serverUrl=etServerUrl.getText().toString();
+						if(serverUrl.isEmpty()){
+							return ;
+						}
+						sp.edit().putString("url", serverUrl).commit();
+						SuperWeChatApplication.SERVER_ROOT=serverUrl+":8080/SuperQQ4Server/Server";
+						Toast.makeText(LoginActivity.this, "服务端ip地址设置完成", Toast.LENGTH_LONG).show();
+						Log.e("main","LoginACtivity,SERVER_ROOT="+SuperWeChatApplication.SERVER_ROOT);
+					}
+				});
+				builder.setNegativeButton("取消", null);
+				builder.create().show();
+			}
+		});
 	}
 
     private void setRegisterClickListener() {
