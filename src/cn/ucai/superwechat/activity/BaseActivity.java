@@ -14,19 +14,28 @@
 
 package cn.ucai.superwechat.activity;
 
+import android.app.Activity;
 import android.os.Bundle;
 import android.support.v4.app.FragmentActivity;
 import android.view.View;
+import android.widget.Toast;
 
+import com.android.volley.Request;
+import com.android.volley.Response;
+import com.android.volley.VolleyError;
 import com.umeng.analytics.MobclickAgent;
 
 import cn.ucai.superwechat.applib.controller.HXSDKHelper;
+import cn.ucai.superwechat.data.RequestManager;
 
 public class BaseActivity extends FragmentActivity {
 
+    protected Activity activity;
+
     @Override
-    protected void onCreate(Bundle arg0) {
-        super.onCreate(arg0);
+    protected void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        activity = this;
     }
 
     @Override
@@ -58,5 +67,24 @@ public class BaseActivity extends FragmentActivity {
 
     public <T> T getViewById(int id){
         return (T)findViewById(id);
+    }
+
+    @Override
+    public void onStop() {
+        super.onStop();
+        RequestManager.cancelAll(this);
+    }
+
+    protected void executeRequest(Request<?> request) {
+        RequestManager.addRequest(request, this);
+    }
+
+    protected Response.ErrorListener errorListener() {
+        return new Response.ErrorListener() {
+            @Override
+            public void onErrorResponse(VolleyError error) {
+                Toast.makeText(activity, error.getMessage(), Toast.LENGTH_LONG).show();
+            }
+        };
     }
 }

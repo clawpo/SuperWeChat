@@ -1494,7 +1494,7 @@ public class ChatActivity extends BaseActivity implements OnClickListener, EMEve
 	}
 
 	@Override
-	protected void onStop() {
+	public void onStop() {
 		// unregister this event listener when this activity enters the
 		// background
 		EMChatManager.getInstance().unregisterEventListener(this);

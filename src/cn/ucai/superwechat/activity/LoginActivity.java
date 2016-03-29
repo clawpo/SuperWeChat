@@ -289,7 +289,7 @@ public class LoginActivity extends BaseActivity {
 		}
 	}
 
-    private boolean loginAppServer(String userName, String password){
+    private boolean loginAppServer(final String userName, final String password){
         UserDao dao = new UserDao(mContext);
         UserBean user = dao.findUserByUserName(userName);
         if(user != null){

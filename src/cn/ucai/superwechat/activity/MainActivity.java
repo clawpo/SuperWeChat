@@ -907,7 +907,7 @@ public class MainActivity extends BaseActivity implements EMEventListener {
 	}
 
 	@Override
-	protected void onStop() {
+	public void onStop() {
 		EMChatManager.getInstance().unregisterEventListener(this);
 		DemoHXSDKHelper sdkHelper = (DemoHXSDKHelper) DemoHXSDKHelper.getInstance();
 		sdkHelper.popActivity(this);

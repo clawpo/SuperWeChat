@@ -24,6 +24,7 @@ import java.util.HashMap;
 import cn.ucai.superwechat.bean.ContactBean;
 import cn.ucai.superwechat.bean.GroupBean;
 import cn.ucai.superwechat.bean.UserBean;
+import cn.ucai.superwechat.data.RequestManager;
 
 public class SuperWeChatApplication extends Application {
 	public static final String TAG = SuperWeChatApplication.class.getName();
@@ -66,6 +67,7 @@ public class SuperWeChatApplication extends Application {
          * }
          */
         hxSDKHelper.onInit(applicationContext);
+        RequestManager.init(this);
 	}
 
 	public static SuperWeChatApplication getInstance() {
