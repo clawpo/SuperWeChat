@@ -52,6 +52,7 @@ public class Utils {
         array[array.length-1]=t;
         return array;
     }
+
     /**
      * 返回发送消息者，发送消息者可能是群聊中成员或单聊中的好友
      * @param chatType：群聊/单聊

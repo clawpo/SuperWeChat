@@ -8,6 +8,9 @@ import android.widget.TextView;
 import com.easemob.util.HanziToPinyin;
 import com.squareup.picasso.Picasso;
 
+import java.util.ArrayList;
+import java.util.HashMap;
+
 import cn.ucai.superwechat.Constant;
 import cn.ucai.superwechat.DemoHXSDKHelper;
 import cn.ucai.superwechat.R;
@@ -115,6 +118,17 @@ public class UserUtils {
 	            user.setHeader("#");
 	        }
 	    }
+	}
+	
+	public static HashMap<String, UserBean> array2Map(ArrayList<UserBean> arraylist){
+	    HashMap<String, UserBean> map = new HashMap<String, UserBean>();
+	    if(arraylist==null){
+	        return null;
+	    }
+	    for(UserBean u:arraylist){
+	        map.put(u.getUserName(), u);
+	    }
+	    return map;
 	}
     
 }

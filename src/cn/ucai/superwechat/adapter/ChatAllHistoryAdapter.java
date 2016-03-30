@@ -13,41 +13,51 @@
  */
 package cn.ucai.superwechat.adapter;
 
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.List;
-import java.util.Map;
-
+import android.content.BroadcastReceiver;
 import android.content.Context;
+import android.content.Intent;
+import android.content.IntentFilter;
 import android.text.TextUtils;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ArrayAdapter;
 import android.widget.Filter;
-import android.widget.ImageView;
 import android.widget.RelativeLayout;
 import android.widget.TextView;
 import android.widget.TextView.BufferType;
 
-import cn.ucai.superwechat.applib.controller.HXSDKHelper;
+import com.android.volley.toolbox.ImageLoader;
+import com.android.volley.toolbox.NetworkImageView;
 import com.easemob.chat.EMChatManager;
 import com.easemob.chat.EMChatRoom;
 import com.easemob.chat.EMConversation;
+import com.easemob.chat.EMConversation.EMConversationType;
 import com.easemob.chat.EMGroup;
 import com.easemob.chat.EMGroupManager;
 import com.easemob.chat.EMMessage;
 import com.easemob.chat.ImageMessageBody;
 import com.easemob.chat.TextMessageBody;
-import com.easemob.chat.EMConversation.EMConversationType;
+import com.easemob.util.EMLog;
+
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
 import cn.ucai.superwechat.Constant;
 import cn.ucai.superwechat.DemoHXSDKHelper;
+import cn.ucai.superwechat.I;
 import cn.ucai.superwechat.R;
+import cn.ucai.superwechat.SuperWeChatApplication;
+import cn.ucai.superwechat.applib.controller.HXSDKHelper;
+import cn.ucai.superwechat.bean.UserBean;
+import cn.ucai.superwechat.data.RequestManager;
 import cn.ucai.superwechat.domain.RobotUser;
 import cn.ucai.superwechat.utils.DateUtils;
 import cn.ucai.superwechat.utils.SmileUtils;
 import cn.ucai.superwechat.utils.UserUtils;
-import com.easemob.util.EMLog;
 
 /**
  * 显示所有聊天记录adpater
@@ -61,14 +71,47 @@ public class ChatAllHistoryAdapter extends ArrayAdapter<EMConversation> {
 	private List<EMConversation> copyConversationList;
 	private ConversationFilter conversationFilter;
     private boolean notiyfyByFilter;
+    
+    ImageLoader mImageLoader;
+    
+    ContactChangeReceiver mReceiver;
+
+    Context mContext;
+    ArrayList<UserBean> mList;
+    UserBean mUser;
+
+    HashMap<String, UserBean> mConversationUserMap;
 
 	public ChatAllHistoryAdapter(Context context, int textViewResourceId, List<EMConversation> objects) {
 		super(context, textViewResourceId, objects);
+		mContext=context;
 		this.conversationList = objects;
 		copyConversationList = new ArrayList<EMConversation>();
 		copyConversationList.addAll(objects);
 		inflater = LayoutInflater.from(context);
+
+        mImageLoader = RequestManager.getImageLoader();
+        registerContactChangeReceiver(mContext);
 	}
+
+    private void getContactList(){
+        mList = SuperWeChatApplication.getInstance().getContactList();
+        if(mList!=null&&mList.size()>0){
+            mConversationUserMap = UserUtils.array2Map(mList);
+        }
+    }
+
+    private void registerContactChangeReceiver(Context context) {
+        mReceiver = new ContactChangeReceiver();
+        IntentFilter filter = new IntentFilter("update_contacts");
+        mContext.registerReceiver(mReceiver, filter);
+    }
+
+    public void unRegisterContactChangeReceiver(Context context) {
+        if(mReceiver!=null){
+            mContext.unregisterReceiver(mReceiver);
+        }
+    }
 
 	@Override
 	public View getView(int position, View convertView, ViewGroup parent) {
@@ -82,7 +125,7 @@ public class ChatAllHistoryAdapter extends ArrayAdapter<EMConversation> {
 			holder.unreadLabel = (TextView) convertView.findViewById(R.id.unread_msg_number);
 			holder.message = (TextView) convertView.findViewById(R.id.message);
 			holder.time = (TextView) convertView.findViewById(R.id.time);
-			holder.avatar = (ImageView) convertView.findViewById(R.id.avatar);
+			holder.avatar = (NetworkImageView) convertView.findViewById(R.id.avatar);
 			holder.msgState = convertView.findViewById(R.id.msg_state);
 			holder.list_item_layout = (RelativeLayout) convertView.findViewById(R.id.list_item_layout);
 			convertView.setTag(holder);
@@ -97,17 +140,29 @@ public class ChatAllHistoryAdapter extends ArrayAdapter<EMConversation> {
 		EMConversation conversation = getItem(position);
 		// 获取用户username或者群组groupid
 		String username = conversation.getUserName();
+        getContactList();
+        String path;
 		if (conversation.getType() == EMConversationType.GroupChat) {
 			// 群聊消息，显示群聊头像
-			holder.avatar.setImageResource(R.drawable.group_icon);
+			holder.avatar.setDefaultImageResId(R.drawable.group_icon);
 			EMGroup group = EMGroupManager.getInstance().getGroup(username);
 			holder.name.setText(group != null ? group.getGroupName() : username);
 		} else if(conversation.getType() == EMConversationType.ChatRoom){
-		    holder.avatar.setImageResource(R.drawable.group_icon);
+		    holder.avatar.setDefaultImageResId(R.drawable.group_icon);
             EMChatRoom room = EMChatManager.getInstance().getChatRoom(username);
             holder.name.setText(room != null && !TextUtils.isEmpty(room.getName()) ? room.getName() : username);
 		}else {
-		    UserUtils.setUserAvatar(getContext(), username, holder.avatar);
+//		    UserUtils.setUserAvatar(getContext(), username, holder.avatar);
+            holder.avatar.setDefaultImageResId(R.drawable.default_avatar);
+            holder.avatar.setErrorImageResId(R.drawable.default_avatar);
+            if(mConversationUserMap!=null && mConversationUserMap.size()>0){
+                if(mConversationUserMap.containsKey(username)){
+                    path = mConversationUserMap.get(username).getAvatar();
+                    if(path!=null){
+                        holder.avatar.setImageUrl(I.DOWNLOAD_AVATAR_URL+path,mImageLoader);
+                    }
+                }
+            }
 			if (username.equals(Constant.GROUP_USERNAME)) {
 				holder.name.setText("群聊");
 
@@ -219,7 +274,7 @@ public class ChatAllHistoryAdapter extends ArrayAdapter<EMConversation> {
 		/** 最后一条消息的时间 */
 		TextView time;
 		/** 用户头像 */
-		ImageView avatar;
+        NetworkImageView avatar;
 		/** 最后一条消息的发送状态 */
 		View msgState;
 		/** 整个list中每一行总布局 */
@@ -318,5 +373,14 @@ public class ChatAllHistoryAdapter extends ArrayAdapter<EMConversation> {
             copyConversationList.addAll(conversationList);
             notiyfyByFilter = false;
         }
+	}
+
+	class ContactChangeReceiver extends BroadcastReceiver {
+
+		@Override
+		public void onReceive(Context context, Intent intent) {
+			notifyDataSetChanged();
+		}
+
 	}
 }
