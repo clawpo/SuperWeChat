@@ -75,11 +75,11 @@ public class BaseActivity extends FragmentActivity {
         RequestManager.cancelAll(this);
     }
 
-    protected void executeRequest(Request<?> request) {
+    public void executeRequest(Request<?> request) {
         RequestManager.addRequest(request, this);
     }
 
-    protected Response.ErrorListener errorListener() {
+    public Response.ErrorListener errorListener() {
         return new Response.ErrorListener() {
             @Override
             public void onErrorResponse(VolleyError error) {

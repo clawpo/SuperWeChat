@@ -103,7 +103,8 @@ public class MainActivity extends BaseActivity implements EMEventListener {
 	public boolean isConflict = false;
 	// 账号被移除
 	private boolean isCurrentAccountRemoved = false;
-	
+
+    private MyContactListener contactListener = null;
 	private MyConnectionListener connectionListener = null;
 	private MyGroupChangeListener groupChangeListener = null;
 
@@ -166,7 +167,8 @@ public class MainActivity extends BaseActivity implements EMEventListener {
 
 	private void init() {     
 		// setContactListener监听联系人的变化等
-		EMContactManager.getInstance().setContactListener(new MyContactListener());
+        contactListener = new MyContactListener();
+		EMContactManager.getInstance().setContactListener(contactListener);
 		// 注册一个监听连接状态的listener
 		
 		connectionListener = new MyConnectionListener();
@@ -615,6 +617,37 @@ public class MainActivity extends BaseActivity implements EMEventListener {
 
 		@Override
 		public void onContactDeleted(final List<String> usernameList) {
+		    //删除应用服务器的好友关系
+		    HashMap<Integer, ContactBean> contacts = SuperWeChatApplication.getInstance().getContacts();
+		    ArrayList<UserBean> contactList = SuperWeChatApplication.getInstance().getContactList();
+		    ArrayList<ContactBean> deleteContacts = new ArrayList<ContactBean>();
+		    ArrayList<UserBean> deleteContactList = new ArrayList<UserBean>();
+		    //删除内存中好友，删除的好友存放在deleteContactList和deleteContacts集合中
+            for(UserBean contactUser : contactList){
+		        if(usernameList.contains(contactUser.getUserName())){
+		            ContactBean contact = contacts.remove(contactUser.getId());
+		            deleteContacts.add(contact);
+		            deleteContactList.add(contactUser);
+		        }
+		    }
+		    if(deleteContacts.size()>0){
+		        contactList.removeAll(deleteContactList);//删除内存中好友
+		        // 删除应用服务器的联系人记录
+                try {
+                    for(ContactBean contact : deleteContacts) {
+                        String path = new ApiParams()
+                                .with(I.KEY_REQUEST, I.REQUEST_DELETE_CONTACT)
+                                .with(I.Contact.MYUID, contact.getMyuid() + "")
+                                .with(I.Contact.CUID, contact.getCuid() + "")
+                                .getUrl(SuperWeChatApplication.SERVER_ROOT);
+                        Log.e(TAG,"delete contacts,path="+path);
+                        executeRequest(new GsonRequest<Boolean>(path, Boolean.class,
+                                responseDeleteContactListener(), errorListener()));
+                    }
+                }catch (Exception e){
+                    e.printStackTrace();
+                }
+		    }
 			// 被删除
 			Map<String, User> localUsers = ((DemoHXSDKHelper)HXSDKHelper.getInstance()).getContactList();
 			for (String username : usernameList) {
@@ -640,6 +673,18 @@ public class MainActivity extends BaseActivity implements EMEventListener {
 			});
 
 		}
+
+        private Response.Listener<Boolean> responseDeleteContactListener(){
+            return new Response.Listener<Boolean>() {
+                @Override
+                public void onResponse(Boolean isSuccess) {
+                    if(isSuccess){
+                        Intent intent = new Intent("update_contacts");
+                        mContext.sendBroadcast(intent);
+                    }
+                }
+            };
+        }
 
 		@Override
 		public void onContactInvited(String username, String reason) {
