@@ -597,7 +597,6 @@ public class MessageAdapter extends BaseAdapter{
 			}
 		}
 		if(path != null){
-            Log.e(TAG,"getView,path="+path);
 		    holder.iv_avatar.setTag(path);
             holder.iv_avatar.setDefaultImageResId(R.drawable.default_avatar);
             holder.iv_avatar.setErrorImageResId(R.drawable.default_avatar);
@@ -611,6 +610,7 @@ public class MessageAdapter extends BaseAdapter{
                 Intent intent = new Intent();
                 intent.setClass(context, UserProfileActivity.class);
                 intent.putExtra("username", message.getFrom());
+                intent.putExtra("user", Utils.getMessageFromUser(message.getChatType(), username, message.getFrom()));
                 context.startActivity(intent);
             }
         });
@@ -881,7 +881,7 @@ public class MessageAdapter extends BaseAdapter{
 								// message.setProgress(0);
 								holder.staus_iv.setVisibility(View.VISIBLE);
 								Toast.makeText(activity,
-										activity.getString(R.string.send_fail) + activity.getString(R.string.connect_failuer_toast), 0)
+										activity.getString(R.string.send_fail) + activity.getString(R.string.connect_failuer_toast), Toast.LENGTH_SHORT)
 										.show();
 								timer.cancel();
 							}

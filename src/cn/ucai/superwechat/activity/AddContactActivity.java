@@ -139,6 +139,7 @@ public class AddContactActivity extends BaseActivity{
                         Intent intent = new Intent();
                         intent.setClass(mContext, UserProfileActivity.class);
                         intent.putExtra("username", user.getUserName());
+                        intent.putExtra("user", user);
                         mContext.startActivity(intent);
                     }else{
                         //服务器存在此用户，显示此用户和添加按钮

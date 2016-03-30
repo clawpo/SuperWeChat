@@ -1,7 +1,6 @@
 package cn.ucai.superwechat.utils;
 
 import android.content.Context;
-import android.util.Log;
 import android.widget.Toast;
 
 import com.easemob.chat.EMMessage;
@@ -77,8 +76,6 @@ public class Utils {
         //获取发送消息者
         UserBean user = new UserBean();
         user.setUserName(userName);
-        Log.e("main","if setUserAvatar,userList="+userList);
-        Log.e("main","if setUserAvatar,user="+user);
         if(userList==null ||userList.isEmpty()){
             return null;
         }

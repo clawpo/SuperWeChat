@@ -1,7 +1,5 @@
 package cn.ucai.superwechat.activity;
 
-import java.io.ByteArrayOutputStream;
-
 import android.app.AlertDialog;
 import android.app.AlertDialog.Builder;
 import android.app.ProgressDialog;
@@ -22,20 +20,28 @@ import android.widget.RelativeLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import com.android.volley.toolbox.ImageLoader;
+import com.android.volley.toolbox.NetworkImageView;
 import com.easemob.EMValueCallBack;
-import cn.ucai.superwechat.applib.controller.HXSDKHelper;
-import com.easemob.chat.EMChatManager;
+import com.squareup.picasso.Picasso;
+
+import java.io.ByteArrayOutputStream;
+
 import cn.ucai.superwechat.DemoHXSDKHelper;
+import cn.ucai.superwechat.I;
 import cn.ucai.superwechat.R;
+import cn.ucai.superwechat.SuperWeChatApplication;
+import cn.ucai.superwechat.applib.controller.HXSDKHelper;
+import cn.ucai.superwechat.bean.UserBean;
+import cn.ucai.superwechat.data.RequestManager;
 import cn.ucai.superwechat.domain.User;
 import cn.ucai.superwechat.utils.UserUtils;
-import com.squareup.picasso.Picasso;
 
 public class UserProfileActivity extends BaseActivity implements OnClickListener{
 	
 	private static final int REQUESTCODE_PICK = 1;
 	private static final int REQUESTCODE_CUTTING = 2;
-	private ImageView headAvatar;
+	private NetworkImageView headAvatar;
 	private ImageView headPhotoUpdate;
 	private ImageView iconRightArrow;
 	private TextView tvNickName;
@@ -43,18 +49,22 @@ public class UserProfileActivity extends BaseActivity implements OnClickListener
 	private ProgressDialog dialog;
 	private RelativeLayout rlNickName;
 	
-	
-	
+	ImageLoader mImageLoader;
+    UserBean mUser;
+
 	@Override
 	protected void onCreate(Bundle arg0) {
 		super.onCreate(arg0);
 		setContentView(R.layout.activity_user_profile);
+		mImageLoader = RequestManager.getImageLoader();
 		initView();
 		initListener();
 	}
 	
 	private void initView() {
-		headAvatar = (ImageView) findViewById(R.id.user_head_avatar);
+		headAvatar = (NetworkImageView) findViewById(R.id.user_head_avatar);
+		headAvatar.setDefaultImageResId(R.drawable.default_avatar);
+		headAvatar.setErrorImageResId(R.drawable.default_avatar);
 		headPhotoUpdate = (ImageView) findViewById(R.id.user_head_headphoto_update);
 		tvUsername = (TextView) findViewById(R.id.user_username);
 		tvNickName = (TextView) findViewById(R.id.user_nickname);
@@ -65,6 +75,7 @@ public class UserProfileActivity extends BaseActivity implements OnClickListener
 	private void initListener() {
 		Intent intent = getIntent();
 		String username = intent.getStringExtra("username");
+		mUser = (UserBean) intent.getSerializableExtra("user");
 		boolean enableUpdate = intent.getBooleanExtra("setting", false);
 		if (enableUpdate) {
 			headPhotoUpdate.setVisibility(View.VISIBLE);
@@ -75,20 +86,12 @@ public class UserProfileActivity extends BaseActivity implements OnClickListener
 			headPhotoUpdate.setVisibility(View.GONE);
 			iconRightArrow.setVisibility(View.INVISIBLE);
 		}
-		if (username == null) {
-			tvUsername.setText(EMChatManager.getInstance().getCurrentUser());
-			UserUtils.setCurrentUserNick(tvNickName);
-			UserUtils.setCurrentUserAvatar(this, headAvatar);
-		} else if (username.equals(EMChatManager.getInstance().getCurrentUser())) {
-			tvUsername.setText(EMChatManager.getInstance().getCurrentUser());
-			UserUtils.setCurrentUserNick(tvNickName);
-			UserUtils.setCurrentUserAvatar(this, headAvatar);
-		} else {
-			tvUsername.setText(username);
-			UserUtils.setUserNick(username, tvNickName);
-			UserUtils.setUserAvatar(this, username, headAvatar);
-			asyncFetchUserInfo(username);
-		}
+		if (mUser == null) {
+            mUser = SuperWeChatApplication.getInstance().getUserBean();
+        }
+        tvUsername.setText(mUser.getUserName());
+        tvNickName.setText(mUser.getNick());
+        headAvatar.setImageUrl(I.DOWNLOAD_AVATAR_URL+mUser.getAvatar(),mImageLoader);
 	}
 
 	@Override
