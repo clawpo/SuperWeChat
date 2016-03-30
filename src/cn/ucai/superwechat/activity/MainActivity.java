@@ -13,12 +13,6 @@
  */
 package cn.ucai.superwechat.activity;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
-
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.DialogInterface;
@@ -37,6 +31,7 @@ import android.widget.Button;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import com.android.volley.Response;
 import com.easemob.EMCallBack;
 import com.easemob.EMConnectionListener;
 import com.easemob.EMError;
@@ -44,7 +39,6 @@ import com.easemob.EMEventListener;
 import com.easemob.EMGroupChangeListener;
 import com.easemob.EMNotifierEvent;
 import com.easemob.EMValueCallBack;
-import cn.ucai.superwechat.applib.controller.HXSDKHelper;
 import com.easemob.chat.EMChatManager;
 import com.easemob.chat.EMContactListener;
 import com.easemob.chat.EMContactManager;
@@ -56,23 +50,39 @@ import com.easemob.chat.EMMessage;
 import com.easemob.chat.EMMessage.ChatType;
 import com.easemob.chat.EMMessage.Type;
 import com.easemob.chat.TextMessageBody;
+import com.easemob.util.EMLog;
+import com.easemob.util.HanziToPinyin;
+import com.easemob.util.NetUtils;
+import com.umeng.analytics.MobclickAgent;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+
 import cn.ucai.superwechat.Constant;
 import cn.ucai.superwechat.DemoHXSDKHelper;
+import cn.ucai.superwechat.I;
 import cn.ucai.superwechat.R;
-import cn.ucai.superwechat.db.InviteMessgeDao;
+import cn.ucai.superwechat.SuperWeChatApplication;
+import cn.ucai.superwechat.applib.controller.HXSDKHelper;
+import cn.ucai.superwechat.bean.ContactBean;
+import cn.ucai.superwechat.bean.UserBean;
+import cn.ucai.superwechat.data.ApiParams;
+import cn.ucai.superwechat.data.GsonRequest;
 import cn.ucai.superwechat.db.EMUserDao;
+import cn.ucai.superwechat.db.InviteMessgeDao;
 import cn.ucai.superwechat.domain.InviteMessage;
 import cn.ucai.superwechat.domain.User;
 import cn.ucai.superwechat.fragment.ChatAllHistoryFragment;
 import cn.ucai.superwechat.fragment.ContactlistFragment;
 import cn.ucai.superwechat.fragment.SettingsFragment;
 import cn.ucai.superwechat.utils.CommonUtils;
-import com.easemob.util.EMLog;
-import com.easemob.util.HanziToPinyin;
-import com.easemob.util.NetUtils;
-import com.umeng.analytics.MobclickAgent;
+import cn.ucai.superwechat.utils.Utils;
 
 public class MainActivity extends BaseActivity implements EMEventListener {
+    Context mContext;
 
 	protected static final String TAG = "MainActivity";
 	// 未读消息textview
@@ -107,7 +117,7 @@ public class MainActivity extends BaseActivity implements EMEventListener {
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
-		
+		mContext=this;
 		if (savedInstanceState != null && savedInstanceState.getBoolean(Constant.ACCOUNT_REMOVED, false)) {
 			// 防止被移除后，没点确定按钮然后按了home键，长期在后台又进app导致的crash
 			// 三个fragment里加的判断同理
@@ -520,11 +530,13 @@ public class MainActivity extends BaseActivity implements EMEventListener {
 			// 保存增加的联系人
 			Map<String, User> localUsers = ((DemoHXSDKHelper)HXSDKHelper.getInstance()).getContactList();
 			Map<String, User> toAddUsers = new HashMap<String, User>();
+			boolean exists = false;
 			for (String username : usernameList) {
 				User user = setUserHead(username);
 				// 添加好友时可能会回调added方法两次
 				if (!localUsers.containsKey(username)) {
 					userDao.saveContact(user);
+					exists = true;
 				}
 				toAddUsers.put(username, user);
 			}
@@ -532,8 +544,74 @@ public class MainActivity extends BaseActivity implements EMEventListener {
 			// 刷新ui
 			if (currentTabIndex == 1)
 				contactListFragment.refresh();
+            SuperWeChatApplication instance = SuperWeChatApplication.getInstance();
+            String currentUserName = instance.getUserName();
+			ArrayList<UserBean> contactList = instance.getContactList();
+			ArrayList<String> addContactList = new ArrayList<String>();
+            for(String username : usernameList){
+                UserBean u = new UserBean(username);
+                if(!contactList.contains(u)){
+                    addContactList.add(username);
+                }
+            }
+			if(exists && addContactList.size()>0){
+                try {
+                    for (String name : addContactList) {
+                        String path = new ApiParams()
+                                .with(I.KEY_REQUEST, I.REQUEST_ADD_CONTACT)
+                                .with(I.User.USER_NAME, currentUserName)
+                                .with(I.Contact.NAME, name)
+                                .getUrl(SuperWeChatApplication.SERVER_ROOT);
+                        executeRequest(new GsonRequest<ContactBean>(path, ContactBean.class,
+                                responseListener(name), errorListener()));
+                    }
+                }catch (Exception e){
+                    e.printStackTrace();
+                }
+			}
 
 		}
+        private Response.Listener<ContactBean> responseListener(final String contactName) {
+            return new Response.Listener<ContactBean>() {
+                @Override
+                public void onResponse(ContactBean contact) {
+                    if(contact!=null && "ok".equals(contact.getResult())) {
+                        //获取好友集合
+                        HashMap<Integer, ContactBean> contacts = SuperWeChatApplication.getInstance().getContacts();
+                        //若添加成功，则将新好友保存在内存集合
+                        contacts.put(contact.getMyuid(), contact);
+                        //从服务端下载新好友
+                        try {
+                            String path = new ApiParams()
+                                    .with(I.KEY_REQUEST, I.REQUEST_FIND_USER)
+                                    .with(I.User.USER_NAME, contactName)
+                                    .getUrl(SuperWeChatApplication.SERVER_ROOT);
+                            executeRequest(new GsonRequest<UserBean>(path, UserBean.class,
+                                    responseUserBeanListener(), errorListener()));
+                        }catch (Exception e){
+                            e.printStackTrace();
+                        }
+                    }
+                }
+            };
+        }
+
+        private Response.Listener<UserBean> responseUserBeanListener(){
+            return new Response.Listener<UserBean>(){
+                @Override
+                public void onResponse(UserBean user) {
+                    if(user!=null) {
+                        //获取登陆用户的所有好友
+                        ArrayList<UserBean> contactList = SuperWeChatApplication.getInstance().getContactList();
+                        contactList.add(user);
+                        //若有新好友，向ContactListFragment发送刷新牧场好友的广播
+                        Intent intent = new Intent("update_contacts");
+                        mContext.sendStickyBroadcast(intent);
+                        Utils.showToast(mContext, R.string.Add_buddy_success, Toast.LENGTH_SHORT);
+                    }
+                }
+            };
+        }
 
 		@Override
 		public void onContactDeleted(final List<String> usernameList) {
@@ -550,7 +628,7 @@ public class MainActivity extends BaseActivity implements EMEventListener {
 					String st10 = getResources().getString(R.string.have_you_removed);
 					if (ChatActivity.activityInstance != null
 							&& usernameList.contains(ChatActivity.activityInstance.getToChatUsername())) {
-						Toast.makeText(MainActivity.this, ChatActivity.activityInstance.getToChatUsername() + st10, 1)
+						Toast.makeText(MainActivity.this, ChatActivity.activityInstance.getToChatUsername() + st10, Toast.LENGTH_SHORT)
 								.show();
 						ChatActivity.activityInstance.finish();
 					}

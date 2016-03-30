@@ -107,11 +107,6 @@ public class ChatAllHistoryAdapter extends ArrayAdapter<EMConversation> {
         mContext.registerReceiver(mReceiver, filter);
     }
 
-    public void unRegisterContactChangeReceiver(Context context) {
-        if(mReceiver!=null){
-            mContext.unregisterReceiver(mReceiver);
-        }
-    }
 
 	@Override
 	public View getView(int position, View convertView, ViewGroup parent) {
@@ -380,6 +375,7 @@ public class ChatAllHistoryAdapter extends ArrayAdapter<EMConversation> {
 		@Override
 		public void onReceive(Context context, Intent intent) {
 			notifyDataSetChanged();
+            context.unregisterReceiver(this);
 		}
 
 	}
