@@ -85,38 +85,28 @@ public final class NetUtil {
 	 */
 	public static boolean uploadAvatar(Activity activity, String avatarType,
 			String userName) throws Exception {
-	    Log.i(TAG, "NetUtil.uploadAvatar");
 		HttpClient client = new DefaultHttpClient();
 		String url=SuperWeChatApplication.SERVER_ROOT+"?"+I.KEY_REQUEST+"="+I.REQUEST_UPLOAD_AVATAR
 				+"&"+I.User.USER_NAME+"="+userName
 				+"&"+I.AVATAR_TYPE+"="+avatarType;
-        Log.i(TAG, "NetUtil.uploadAvatar.url="+url);
 		HttpPost post = new HttpPost(url);
 		try {
-	        Log.i(TAG, "NetUtil.uploadAvatar.userName="+userName);
     		File file = new File(ImageUtils.getAvatarPath(activity, avatarType),
     				userName + ".jpg");
-            Log.i(TAG, "NetUtil.uploadAvatar.file="+file);
     		HttpEntity entity = HttpUtils.createInputStreamEntity(file);
-            Log.i(TAG, "NetUtil.uploadAvatar.entity="+entity);
     		post.setEntity(entity);
     		HttpResponse response = client.execute(post);
-            Log.i(TAG, "NetUtil.uploadAvatar.response="+response.getStatusLine().getStatusCode());
     		if (response.getStatusLine().getStatusCode() == 200) {
     			InputStream in = response.getEntity().getContent();
     			ObjectMapper om = new ObjectMapper();
     			MessageBean msg=om.readValue(in, MessageBean.class);
-                Log.i(TAG, "NetUtil.uploadAvatar.msg="+msg.isSuccess());
     			return msg.isSuccess();
     		}
         }catch(FileNotFoundException e){
-            Log.i(TAG, "NetUtil.uploadAvatar.FileNotFoundException="+e.getMessage().toString());
             e.printStackTrace();
 	    }catch (Exception e) {
-            Log.i(TAG, "NetUtil.uploadAvatar.Exception="+e.getMessage().toString());
             e.printStackTrace();
         }
-        Log.i(TAG, "NetUtil.uploadAvatar.return false=");
 		return false;
 	}
 
@@ -679,7 +669,10 @@ public final class NetUtil {
 				map.put(contact.getCuid(), contact);
 			}
 			HashMap<Integer,ContactBean> contactMap=instance.getContacts();
+            Log.e(TAG,"downloadContacts,contactMap.size()="+contactMap.size());
+            Log.e(TAG,"downloadContacts,contactMap.size()="+contactMap.size());
 			contactMap.putAll(map);
+            Log.e(TAG,"downloadContacts,contactMap.size()="+contactMap.size());
 			return true;
 		} catch (IllegalStateException e) {
 			// TODO Auto-generated catch block
@@ -721,15 +714,18 @@ public final class NetUtil {
 			ObjectMapper om = new ObjectMapper();
 			UserBean[] userArray = om.readValue(in, UserBean[].class);
 			if(userArray==null){
-			    Log.i("main","download contact list false");
+			    Log.e("main","download contact list false");
 				return false;
 			}
 			//将数组转换为集合
 			ArrayList<UserBean> userList=Utils.array2List(userArray);
+            Log.e(TAG,"userList="+userList.size());
 			//获取已添加的所有联系人的集合
 			ArrayList<UserBean> contactList = SuperWeChatApplication.getInstance().getContactList();
+            Log.e(TAG,"getInstance().getContactList()="+SuperWeChatApplication.getInstance().getContactList().size());
 			//将新下载的数据添加到原联系人集合中
 			contactList.addAll(userList);
+            Log.e(TAG,"getInstance().getContactList()="+SuperWeChatApplication.getInstance().getContactList().size());
 			return true;
 		} catch (IllegalStateException e) {
 			// TODO Auto-generated catch block

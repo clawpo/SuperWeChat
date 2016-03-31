@@ -52,6 +52,7 @@ import cn.ucai.superwechat.I;
 import cn.ucai.superwechat.R;
 import cn.ucai.superwechat.SuperWeChatApplication;
 import cn.ucai.superwechat.applib.controller.HXSDKHelper;
+import cn.ucai.superwechat.bean.GroupBean;
 import cn.ucai.superwechat.bean.UserBean;
 import cn.ucai.superwechat.data.RequestManager;
 import cn.ucai.superwechat.domain.RobotUser;
@@ -139,9 +140,21 @@ public class ChatAllHistoryAdapter extends ArrayAdapter<EMConversation> {
         String path;
 		if (conversation.getType() == EMConversationType.GroupChat) {
 			// 群聊消息，显示群聊头像
-			holder.avatar.setDefaultImageResId(R.drawable.group_icon);
-			EMGroup group = EMGroupManager.getInstance().getGroup(username);
-			holder.name.setText(group != null ? group.getGroupName() : username);
+            holder.avatar.setDefaultImageResId(R.drawable.group_icon);
+            EMGroup group = EMGroupManager.getInstance().getGroup(username);
+            holder.name.setText(group != null ? group.getGroupName() : username);
+
+            ArrayList<GroupBean> groupList = SuperWeChatApplication.getInstance().getGroupList();
+            GroupBean currentGroup;
+            for(GroupBean groupBean : groupList){
+                if(groupBean.getGroupId().equals(username)){
+                    path = groupBean.getAvatar();
+                    if(path!=null){
+                        holder.avatar.setImageUrl(I.DOWNLOAD_AVATAR_URL+path,mImageLoader);
+                        holder.name.setText(groupBean.getName());
+                    }
+                }
+            }
 		} else if(conversation.getType() == EMConversationType.ChatRoom){
 		    holder.avatar.setDefaultImageResId(R.drawable.group_icon);
             EMChatRoom room = EMChatManager.getInstance().getChatRoom(username);
