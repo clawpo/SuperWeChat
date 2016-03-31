@@ -203,6 +203,7 @@ public class LoginActivity extends BaseActivity {
                         if(!isSuccess){
                             runOnUiThread(new  Runnable() {
                                 public void run() {
+                                    pd.dismiss();
                                     Utils.showToast(mContext, "登陆失败", Toast.LENGTH_LONG);
                                 }
                             });

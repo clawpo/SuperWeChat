@@ -320,6 +320,7 @@ public class ContactlistFragment extends Fragment {
 	 * 注册联系人改变的广播接收者
 	 */
     private void registerContactChangeReceiver() {
+        Log.e(TAG,"registerContactChangeReceiver");
         mContactChangeReceiver=new ContactChangeReceiver();
 		IntentFilter filter=new IntentFilter("update_contacts");
 		getActivity().registerReceiver(mContactChangeReceiver, filter);
@@ -568,8 +569,11 @@ public class ContactlistFragment extends Fragment {
         @Override
         public void onReceive(Context context, Intent intent) {
             ArrayList<UserBean> contactList = SuperWeChatApplication.getInstance().getContactList();
+            Log.e(TAG,"ContactChangeReceiver,contactList="+contactList.size());
+            Log.e(TAG,"ContactChangeReceiver,mContactList="+mContactList.size());
 			mContactList.clear();
             mContactList.addAll(contactList);
+            Log.e(TAG,"ContactChangeReceiver,mContactList="+mContactList.size());
             for(UserBean user: contactList){
                 UserUtils.setUserHearder(user);
             }

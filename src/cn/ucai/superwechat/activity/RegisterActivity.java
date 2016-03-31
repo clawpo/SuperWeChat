@@ -244,13 +244,15 @@ public class RegisterActivity extends BaseActivity {
 			if(result == null){
 				Utils.showToast(mContext, getResources().getString(R.string.Registration_failed), 0);
 			}else {
-                if (result.getMessage().equals(getResources().getString(R.string.Registered_successfully))) {
+                Log.e(TAG,"result.getMessage()="+result.getMessage());
+                if (result.getMessage()!=null && result.getMessage().equals(getResources().getString(R.string.Registered_successfully))) {
                     //保存用户
                     SuperWeChatApplication.getInstance().setUserName(userName);
                     Utils.showToast(mContext, getResources().getString(R.string.Registered_successfully), 0);
                     finish();
                 } else {
                     int errorCode = result.getErrorCode();
+                    Log.e(TAG,"result.getErrorCode()="+result.getErrorCode());
                     if (errorCode == EMError.NONETWORK_ERROR) {
                         Utils.showToast(getApplicationContext(), getResources().getString(R.string.network_anomalies), Toast.LENGTH_SHORT);
                     } else if (errorCode == EMError.USER_ALREADY_EXISTS) {

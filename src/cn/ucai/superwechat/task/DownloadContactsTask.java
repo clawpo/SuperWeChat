@@ -57,6 +57,7 @@ public class DownloadContactsTask extends AsyncTask<Void, Void, Boolean> {
         if(result){
 			//向ContactFragment发送更新联系人的广播
             Intent intent = new Intent("update_contacts");
+            Log.e("main","!!!!!!!Downlaod ContactList,sendBroadcast:update_contacts");
             context.sendBroadcast(intent);
         }
     }
